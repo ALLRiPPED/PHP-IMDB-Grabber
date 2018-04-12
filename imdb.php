@@ -1,6 +1,4 @@
-<?php
-require_once('../SSI.php');
-?>
+<?php require_once('../SSI.php'); ?>
 <html>
 <head>
 	<meta charset="utf-8">
