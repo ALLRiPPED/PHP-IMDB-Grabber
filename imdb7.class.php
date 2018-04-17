@@ -26,7 +26,7 @@ class IMDB
     const IMDB_TIMEOUT = 15;
     /**
      * These are the regular expressions used to extract the data.
-     * If you donâ€™t know what youâ€™re doing, you shouldnâ€™t touch them.
+     * If you don’t know what you’re doing, you shouldn’t touch them.
      */
     const IMDB_AKA           = '~<td[^>]*>\s*Also\s*Known\s*As\s*</td>\s*<td>(.+)</td>~Uis';
     const IMDB_ASPECT_RATIO  = '~<td[^>]*>Aspect\s*Ratio</td>\s*<td>(.+)</td>~Uis';
@@ -60,7 +60,7 @@ class IMDB
     const IMDB_TITLE         = '~itemprop="name">(.*)(<\/h3>|<span)~Ui';
     const IMDB_TITLE_ORIG    = '~</h3>(?:\s+)(.*)(?:\s+)<span class=\"titlereference-original-title-label~Ui';
     const IMDB_TRAILER       = '~href="videoplayer/(vi[0-9]*)"~Ui';
-    const IMDB_URL           = '~http://(?:.*\.|.*)imdb.com/(?:t|T)itle(?:\?|/)(..\d+)~i';
+    const IMDB_URL           = '~https?://(?:.*\.|.*)imdb.com/(?:t|T)itle(?:\?|/)(..\d+)~i';
     const IMDB_USER_REVIEW   = '~href="/title/[t0-9]*/reviews"[^>]*>([^<]*)\s*User~Ui';
     const IMDB_VOTES         = '~"ipl-rating-star__total-votes">\s*\((.*)\)\s*<~Ui';
     const IMDB_WRITER        = '~<div[^>]*>\s*(?:Writer|Writers)\s*:\s*<ul[^>]*>(.+)</ul>~Ui';
@@ -116,10 +116,10 @@ class IMDB
     {
         $this->sRoot = dirname(__FILE__);
         if ( ! is_writable($this->sRoot . '/posters') && ! mkdir($this->sRoot . '/posters')) {
-            throw new Exception('The directory â€œ' . $this->sRoot . '/postersâ€ isnâ€™t writable.');
+            throw new Exception('The directory “' . $this->sRoot . '/posters” isn’t writable.');
         }
         if ( ! is_writable($this->sRoot . '/cache') && ! mkdir($this->sRoot . '/cache')) {
-            throw new Exception('The directory â€œ' . $this->sRoot . '/cacheâ€ isnâ€™t writable.');
+            throw new Exception('The directory “' . $this->sRoot . '/cache” isn’t writable.');
         }
         if ( ! function_exists('curl_init')) {
             throw new Exception('You need to enable the PHP cURL extension.');
@@ -156,7 +156,7 @@ class IMDB
         $sId = IMDBHelper::matchRegex($sSearch, self::IMDB_ID, 1);
         if (false !== $sId) {
             $this->iId  = preg_replace('~[\D]~', '', $sId);
-            $this->sUrl = 'http://www.imdb.com/title/tt' . $this->iId . '/reference';
+            $this->sUrl = 'https://www.imdb.com/title/tt' . $this->iId . '/reference';
             $bSearch    = false;
         } else {
             switch (strtolower($this->sSearchFor)) {
@@ -175,7 +175,7 @@ class IMDB
                 default:
                     $sParameters = '&s=tt';
             }
-            $this->sUrl = 'http://www.imdb.com/find?q=' . str_replace(' ', '+', $sSearch) . $sParameters;
+            $this->sUrl = 'https://www.imdb.com/find?q=' . str_replace(' ', '+', $sSearch) . $sParameters;
             $bSearch    = true;
             // Was this search already performed and cached?
             $sRedirectFile = $this->sRoot . '/cache/' . sha1($this->sUrl) . '.redir';
@@ -217,7 +217,7 @@ class IMDB
         // Was the movie found?
         $sMatch = IMDBHelper::matchRegex($sSource, self::IMDB_SEARCH, 1);
         if (false !== $sMatch) {
-            $sUrl = 'http://www.imdb.com/title/' . $sMatch . '/reference';
+            $sUrl = 'https://www.imdb.com/title/' . $sMatch . '/reference';
             if (true === self::IMDB_DEBUG) {
                 echo '<pre><b>New redirect saved:</b> ' . basename($sRedirectFile) . ' => ' . $sUrl . '</pre>';
             }
@@ -436,7 +436,7 @@ class IMDB
         return $aData;
     }
     /**
-     * @return string â€œAlso Known Asâ€ or $sNotFound.
+     * @return string “Also Known As” or $sNotFound.
      */
     public function getAka()
     {
@@ -470,7 +470,7 @@ class IMDB
                 $aReturn    = unserialize($aRawReturn);
                 return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound, $aReturn);
             } else {
-                $fullAkas  = sprintf('http://www.imdb.com/title/tt%s/releaseinfo', $this->iId);
+                $fullAkas  = sprintf('https://www.imdb.com/title/tt%s/releaseinfo', $this->iId);
                 $aCurlInfo = IMDBHelper::runCurl($fullAkas);
                 $sSource   = $aCurlInfo['contents'];
                 if (false === $sSource) {
@@ -499,7 +499,7 @@ class IMDB
         return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound);
     }
     /**
-     * @return string â€œAspect Ratioâ€ or $sNotFound.
+     * @return string “Aspect Ratio” or $sNotFound.
      */
     public function getAspectRatio()
     {
@@ -538,7 +538,7 @@ class IMDB
     }
         /**
      * @param int    $iLimit  How many cast members should be returned?
-     * @param bool   $bMore   Add â€¦ if there are more cast members than printed.
+     * @param bool   $bMore   Add … if there are more cast members than printed.
      * @param string $sTarget Add a target to the links?
      *
      * @return string A list with linked cast members or $sNotFound.
@@ -553,7 +553,7 @@ class IMDB
                         break;
                     }
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/name/' .
+                        '<a href="https://www.imdb.com/name/' .
                         IMDBHelper::cleanString($aMatch[1][$i]) .
                         '/"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -573,7 +573,7 @@ class IMDB
     }
     /**
      * @param int  $iLimit How many cast members should be returned?
-     * @param bool $bMore  Add â€¦ if there are more cast members than printed.
+     * @param bool $bMore  Add … if there are more cast members than printed.
      *
      * @return string A list with cast members or $sNotFound.
      */
@@ -588,7 +588,7 @@ class IMDB
                     }
                     $aReturn[] = IMDBHelper::cleanString($sName);
                 }
-                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[2]) > $iLimit) ? 'â€¦' : '');
+                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[2]) > $iLimit) ? '…' : '');
                 $bHaveMore = ($bMore && (count($aMatch[2]) > $iLimit));
                 return IMDBHelper::arrayOutput($this->bArrayOutput,
                                                $this->sSeparator,
@@ -601,7 +601,7 @@ class IMDB
     }
     /**
      * @param int    $iLimit  How many cast members should be returned?
-     * @param bool   $bMore   Add â€¦ if there are more cast members than
+     * @param bool   $bMore   Add … if there are more cast members than
      *                        printed.
      * @param string $sTarget Add a target to the links?
      *
@@ -619,7 +619,7 @@ class IMDB
                         break;
                     }
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/name/' .
+                        '<a href="https://www.imdb.com/name/' .
                         IMDBHelper::cleanString($aMatch[1][$i]) .
                         '/"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -640,7 +640,7 @@ class IMDB
     }
     /**
      * @param int  $iLimit How many cast members should be returned?
-     * @param bool $bMore  Add â€¦ if there are more cast members than printed.
+     * @param bool $bMore  Add … if there are more cast members than printed.
      *
      * @return string  A list with cast members and their character or
      *                 $sNotFound.
@@ -703,7 +703,7 @@ class IMDB
         if (true === $this->isReady) {
             $aMatch = IMDBHelper::matchRegex($this->sSource, self::IMDB_COMPANY);
             if (isset($aMatch[2][0])) {
-                return '<a href="http://www.imdb.com/company/' .
+                return '<a href="https://www.imdb.com/company/' .
                        IMDBHelper::cleanString($aMatch[1][0]) .
                        '/"' .
                        ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -739,7 +739,7 @@ class IMDB
             if (count($aMatch[2])) {
                 foreach ($aMatch[2] as $i => $sName) {
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/country/' .
+                        '<a href="https://www.imdb.com/country/' .
                         trim($aMatch[1][$i]) .
                         '/"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -778,7 +778,7 @@ class IMDB
             if (count($aMatch[2])) {
                 foreach ($aMatch[2] as $i => $sName) {
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/name/' .
+                        '<a href="https://www.imdb.com/name/' .
                         IMDBHelper::cleanString($aMatch[1][$i]) .
                         '/"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -817,7 +817,7 @@ class IMDB
             if (count($aMatch[2])) {
                 foreach ($aMatch[2] as $i => $sName) {
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/name/' .
+                        '<a href="https://www.imdb.com/name/' .
                         IMDBHelper::cleanString($aMatch[1][$i]) .
                         '/"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -855,7 +855,7 @@ class IMDB
             if (count($aMatch[2])) {
                 foreach (array_unique($aMatch[2]) as $i => $sName) {
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/search/title?genres=' .
+                        '<a href="https://www.imdb.com/search/title?genres=' .
                         IMDBHelper::cleanString($aMatch[1][$i]) .
                         '"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -893,7 +893,7 @@ class IMDB
             if (count($aMatch[2])) {
                 foreach ($aMatch[2] as $i => $sName) {
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/language/' .
+                        '<a href="https://www.imdb.com/language/' .
                         IMDBHelper::cleanString($aMatch[1][$i]) .
                         '"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -931,7 +931,7 @@ class IMDB
             if (count($aMatch[2])) {
                 foreach ($aMatch[2] as $i => $sName) {
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/search/title?locations=' .
+                        '<a href="https://www.imdb.com/search/title?locations=' .
                         IMDBHelper::cleanString($aMatch[1][$i]) .
                         '"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -1100,7 +1100,7 @@ class IMDB
             if (count($aMatch[1])) {
                 foreach (range(1, max($aMatch[1])) as $i => $sName) {
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/title/tt' .
+                        '<a href="https://www.imdb.com/title/tt' .
                         $this->iId .
                         '/episodes?season=' .
                         $sName .
@@ -1187,7 +1187,7 @@ class IMDB
         if (true === $this->isReady) {
             $sMatch = IMDBHelper::matchRegex($this->sSource, self::IMDB_TRAILER, 1);
             if (false !== $sMatch) {
-                $sUrl = 'http://www.imdb.com/video/imdb/' . $sMatch . '/' . ($bEmbed ? 'player' : '');
+                $sUrl = 'https://www.imdb.com/video/imdb/' . $sMatch . '/' . ($bEmbed ? 'player' : '');
 
                 return IMDBHelper::cleanString($sUrl);
             }
@@ -1243,7 +1243,7 @@ class IMDB
             if (count($aMatch[2])) {
                 foreach ($aMatch[2] as $i => $sName) {
                     $aReturn[] =
-                        '<a href="http://www.imdb.com/name/' .
+                        '<a href="https://www.imdb.com/name/' .
                         IMDBHelper::cleanString($aMatch[1][$i]) .
                         '/"' .
                         ($sTarget ? ' target="' . $sTarget . '"' : '') .
@@ -1329,7 +1329,7 @@ class IMDBHelper extends IMDB
                 return [];
             }
             if ($bHaveMore) {
-                $aReturn[] = 'â€¦';
+                $aReturn[] = '…';
             }
             return $aReturn;
         } else {
@@ -1341,7 +1341,7 @@ class IMDBHelper extends IMDB
                     $aReturn[$i] = implode($sSeparator, $value);
                 }
             }
-            return implode($sSeparator, $aReturn) . (($bHaveMore) ? 'â€¦' : '');
+            return implode($sSeparator, $aReturn) . (($bHaveMore) ? '…' : '');
         }
     }
     /**
@@ -1394,7 +1394,7 @@ class IMDBHelper extends IMDB
         }
         list($sShort) = explode("\n", wordwrap($sText, $iLength - 1));
         if (substr($sShort, -1) !== '.') {
-            return $sShort . 'â€¦';
+            return $sShort . '…';
         }
         return $sShort;
     }
@@ -1445,7 +1445,7 @@ class IMDBHelper extends IMDB
                                   'Accept-Charset: utf-8, iso-8859-1;q=0.5',
                                   'Accept-Language: ' . self::IMDB_LANG
                               ],
-                              CURLOPT_REFERER        => 'http://www.imdb.com',
+                              CURLOPT_REFERER        => 'https://www.imdb.com',
                               CURLOPT_RETURNTRANSFER => 1,
                               CURLOPT_SSL_VERIFYHOST => 0,
                               CURLOPT_SSL_VERIFYPEER => 0,
@@ -1459,7 +1459,7 @@ class IMDBHelper extends IMDB
         $aCurlInfo['contents'] = $sOutput;
         if (200 !== $aCurlInfo['http_code'] && 302 !== $aCurlInfo['http_code']) {
             if (true === self::IMDB_DEBUG) {
-                echo '<pre><b>cURL returned wrong HTTP code â€œ' . $aCurlInfo['http_code'] . 'â€, aborting.</b></pre>';
+                echo '<pre><b>cURL returned wrong HTTP code “' . $aCurlInfo['http_code'] . '”, aborting.</b></pre>';
             }
             return false;
         }
