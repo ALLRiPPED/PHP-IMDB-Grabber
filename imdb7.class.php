@@ -8,7 +8,7 @@
  * @author  Fabian Beiner <fb@fabianbeiner.de>
  * @license https://opensource.org/licenses/MIT The MIT License
  * @link    https://github.com/FabianBeiner/PHP-IMDB-Grabber/ GitHub Repository
- * @version 6.0.7
+ * @version 6.0.8
  */
 class IMDB
 {
@@ -26,7 +26,7 @@ class IMDB
     const IMDB_TIMEOUT = 15;
     /**
      * These are the regular expressions used to extract the data.
-     * If you don’t know what you’re doing, you shouldn’t touch them.
+     * If you donâ€™t know what youâ€™re doing, you shouldnâ€™t touch them.
      */
     const IMDB_AKA           = '~<td[^>]*>\s*Also\s*Known\s*As\s*</td>\s*<td>(.+)</td>~Uis';
     const IMDB_ASPECT_RATIO  = '~<td[^>]*>Aspect\s*Ratio</td>\s*<td>(.+)</td>~Uis';
@@ -116,10 +116,10 @@ class IMDB
     {
         $this->sRoot = dirname(__FILE__);
         if ( ! is_writable($this->sRoot . '/posters') && ! mkdir($this->sRoot . '/posters')) {
-            throw new Exception('The directory “' . $this->sRoot . '/posters” isn’t writable.');
+            throw new Exception('The directory â€œ' . $this->sRoot . '/postersâ€ isnâ€™t writable.');
         }
         if ( ! is_writable($this->sRoot . '/cache') && ! mkdir($this->sRoot . '/cache')) {
-            throw new Exception('The directory “' . $this->sRoot . '/cache” isn’t writable.');
+            throw new Exception('The directory â€œ' . $this->sRoot . '/cacheâ€ isnâ€™t writable.');
         }
         if ( ! function_exists('curl_init')) {
             throw new Exception('You need to enable the PHP cURL extension.');
@@ -151,7 +151,8 @@ class IMDB
      * @return bool True on success, false on failure.
      */
     private function fetchUrl($sSearch)
-    {        $sSearch = trim($sSearch);
+    {
+        $sSearch = trim($sSearch);
         // Try to find a valid URL.
         $sId = IMDBHelper::matchRegex($sSearch, self::IMDB_ID, 1);
         if (false !== $sId) {
@@ -436,7 +437,7 @@ class IMDB
         return $aData;
     }
     /**
-     * @return string “Also Known As” or $sNotFound.
+     * @return string â€œAlso Known Asâ€ or $sNotFound.
      */
     public function getAka()
     {
@@ -499,7 +500,7 @@ class IMDB
         return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound);
     }
     /**
-     * @return string “Aspect Ratio” or $sNotFound.
+     * @return string â€œAspect Ratioâ€ or $sNotFound.
      */
     public function getAspectRatio()
     {
@@ -538,7 +539,7 @@ class IMDB
     }
         /**
      * @param int    $iLimit  How many cast members should be returned?
-     * @param bool   $bMore   Add … if there are more cast members than printed.
+     * @param bool   $bMore   Add â€¦ if there are more cast members than printed.
      * @param string $sTarget Add a target to the links?
      *
      * @return string A list with linked cast members or $sNotFound.
@@ -573,7 +574,7 @@ class IMDB
     }
     /**
      * @param int  $iLimit How many cast members should be returned?
-     * @param bool $bMore  Add … if there are more cast members than printed.
+     * @param bool $bMore  Add â€¦ if there are more cast members than printed.
      *
      * @return string A list with cast members or $sNotFound.
      */
@@ -588,7 +589,7 @@ class IMDB
                     }
                     $aReturn[] = IMDBHelper::cleanString($sName);
                 }
-                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[2]) > $iLimit) ? '…' : '');
+                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[2]) > $iLimit) ? 'â€¦' : '');
                 $bHaveMore = ($bMore && (count($aMatch[2]) > $iLimit));
                 return IMDBHelper::arrayOutput($this->bArrayOutput,
                                                $this->sSeparator,
@@ -601,7 +602,7 @@ class IMDB
     }
     /**
      * @param int    $iLimit  How many cast members should be returned?
-     * @param bool   $bMore   Add … if there are more cast members than
+     * @param bool   $bMore   Add â€¦ if there are more cast members than
      *                        printed.
      * @param string $sTarget Add a target to the links?
      *
@@ -640,7 +641,7 @@ class IMDB
     }
     /**
      * @param int  $iLimit How many cast members should be returned?
-     * @param bool $bMore  Add … if there are more cast members than printed.
+     * @param bool $bMore  Add â€¦ if there are more cast members than printed.
      *
      * @return string  A list with cast members and their character or
      *                 $sNotFound.
@@ -1329,7 +1330,7 @@ class IMDBHelper extends IMDB
                 return [];
             }
             if ($bHaveMore) {
-                $aReturn[] = '…';
+                $aReturn[] = 'â€¦';
             }
             return $aReturn;
         } else {
@@ -1341,7 +1342,7 @@ class IMDBHelper extends IMDB
                     $aReturn[$i] = implode($sSeparator, $value);
                 }
             }
-            return implode($sSeparator, $aReturn) . (($bHaveMore) ? '…' : '');
+            return implode($sSeparator, $aReturn) . (($bHaveMore) ? 'â€¦' : '');
         }
     }
     /**
@@ -1394,7 +1395,7 @@ class IMDBHelper extends IMDB
         }
         list($sShort) = explode("\n", wordwrap($sText, $iLength - 1));
         if (substr($sShort, -1) !== '.') {
-            return $sShort . '…';
+            return $sShort . 'â€¦';
         }
         return $sShort;
     }
@@ -1451,7 +1452,7 @@ class IMDBHelper extends IMDB
                               CURLOPT_SSL_VERIFYPEER => 0,
                               CURLOPT_TIMEOUT        => self::IMDB_TIMEOUT,
                               CURLOPT_USERAGENT      => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.108 Safari/537.36',
-                              CURLOPT_VERBOSE        => true
+                              CURLOPT_VERBOSE        => false
                           ]);
         $sOutput   = curl_exec($oCurl);
         $aCurlInfo = curl_getinfo($oCurl);
@@ -1459,7 +1460,7 @@ class IMDBHelper extends IMDB
         $aCurlInfo['contents'] = $sOutput;
         if (200 !== $aCurlInfo['http_code'] && 302 !== $aCurlInfo['http_code']) {
             if (true === self::IMDB_DEBUG) {
-                echo '<pre><b>cURL returned wrong HTTP code “' . $aCurlInfo['http_code'] . '”, aborting.</b></pre>';
+                echo '<pre><b>cURL returned wrong HTTP code â€œ' . $aCurlInfo['http_code'] . 'â€, aborting.</b></pre>';
             }
             return false;
         }
