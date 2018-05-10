@@ -8,13 +8,13 @@
  *
  * If you want to thank me for this library, please buy me something at Amazon
  * (https://www.amazon.de/hz/wishlist/ls/8840JITISN9L/) or use
- * https://www.paypal.me/FabianBeiner. Thank you!
+ * https://www.paypal.me/FabianBeiner. Thank you! 🙌
  *
  *
  * @author  Fabian Beiner <fb@fabianbeiner.de>
  * @license https://opensource.org/licenses/MIT The MIT License
  * @link    https://github.com/FabianBeiner/PHP-IMDB-Grabber/ GitHub Repository
- * @version 6.1.0
+ * @version 6.1.2
  */
 class IMDB
 {
@@ -42,6 +42,7 @@ class IMDB
     const IMDB_AWARDS        = '~<div\s*class="titlereference-overview-section">\s*Awards:(.+)</div>~Uis';
     const IMDB_BUDGET        = '~<td[^>]*>Budget<\/td>\s*<td>\s*(.*)(?:\(estimated\))\s*<\/td>~Ui';
     const IMDB_CAST          = '~<td[^>]*itemprop="actor"[^>]*>\s*<a\s*href="/name/([^/]*)/\?[^"]*"[^>]*>\s*<span.+>(.+)</span~Ui';
+    const IMDB_CAST_IMAGE    = '~(loadlate="(.*)"[^>]*><\/a>\s+<\/td>\s+)?<td[^>]*itemprop="actor"[^>]*>\s*<a\s*href="\/name\/([^/]*)\/\?[^"]*"[^>]*>\s*<span.+>(.+)<\/span+~Uis';
     const IMDB_CERTIFICATION = '~<td[^>]*>\s*Certification\s*</td>\s*<td>(.+)</td>~Ui';
     const IMDB_CHAR          = '~<td class="character">(?:\s+)<div>(.*)(?:\s+)(?: /| \(.*\)|<\/div>)~Ui';
     const IMDB_COLOR         = '~<a href="\/search\/title\?colors=(?:.*)">(.*)<\/a>~Ui';
@@ -141,6 +142,9 @@ class IMDB
         }
         if ( ! is_writable($this->sRoot . '/cache') && ! mkdir($this->sRoot . '/cache')) {
             throw new Exception('The directory “' . $this->sRoot . '/cache” isn’t writable.');
+        }
+        if ( ! is_writable($this->sRoot . '/cast') && ! mkdir($this->sRoot . '/cast')) {
+            throw new Exception('The directory “' . $this->sRoot . '/cast” isn’t writable.');
         }
         if ( ! function_exists('curl_init')) {
             throw new Exception('You need to enable the PHP cURL extension.');
@@ -296,7 +300,7 @@ class IMDB
     {
         $aData = [];
         foreach (get_class_methods(__CLASS__) as $method) {
-            if (substr($method, 0, 3) === 'get' && $method !== 'getAll') {
+            if (substr($method, 0, 3) === 'get' && $method !== 'getAll' && $method !== 'getCastImages') {
                 $aData[$method] = [
                     'name'  => ltrim($method, 'get'),
                     'value' => $this->{$method}()
@@ -481,6 +485,61 @@ class IMDB
                                                self::$sNotFound,
                                                $aReturn,
                                                $bHaveMore);
+            }
+        }
+
+        return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound);
+    }
+
+    /**
+     * @param int    $iLimit    How many cast images should be returned?
+     * @param bool   $bMore     Add … if there are more cast members than printed.
+     * @param string $sSize     small, mid or big cast images
+     * @param bool   $bDownload Return URL or Download
+     *
+     * @return array Array with cast name as key, and image as value.
+     */
+    public function getCastImages($iLimit = 0, $bMore = true, $sSize = 'small', $bDownload = false)
+    {
+        if (true === $this->isReady) {
+            $aMatch  = IMDBHelper::matchRegex($this->sSource, self::IMDB_CAST_IMAGE);
+            $aReturn = [];
+            if (count($aMatch[4])) {
+                foreach ($aMatch[4] as $i => $sName) {
+                    if (0 !== $iLimit && $i >= $iLimit) {
+                        break;
+                    }
+                    $sMatch = $aMatch[2][$i];
+
+                    if ('big' === strtolower($sSize) && false !== strstr($aMatch[2][$i], '@._')) {
+                        $sMatch = substr($aMatch[2][$i], 0, strpos($aMatch[2][$i], '@._')) . '@.jpg';
+                    } elseif ('mid' === strtolower($sSize) && false !== strstr($aMatch[2][$i], '@._')) {
+                        $sMatch = substr($aMatch[2][$i], 0, strpos($aMatch[2][$i], '@._')) . '@._V1_UX214_AL_.jpg';
+                    }
+
+                    if (false === $bDownload) {
+                        $sMatch = IMDBHelper::cleanString($sMatch);
+                    } else {
+                        $sLocal = IMDBHelper::saveImageCast($sMatch, $aMatch[3][$i]);
+                        if (file_exists(dirname(__FILE__) . '/' . $sLocal)) {
+                            $sMatch = $sLocal;
+                        } else {
+                            $sMatch = IMDBHelper::cleanString($sMatch);
+                        }
+                    }
+
+                    $aReturn[IMDBHelper::cleanString($aMatch[4][$i])] = $sMatch;
+                }
+
+                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[4]) > $iLimit) ? '…' : '');
+
+                $bHaveMore = ($bMore && (count($aMatch[4]) > $iLimit));
+
+                $aReturn = array_replace($aReturn,
+                                         array_fill_keys(array_keys($aReturn, self::$sNotFound),
+                                                         'cast/not-found.jpg'));
+
+                return $aReturn;
             }
         }
 
@@ -1498,5 +1557,35 @@ class IMDBHelper extends IMDB
         }
 
         return $aCurlInfo;
+    }
+
+    /**
+     * @param string $sUrl The URL to the image to download.
+     * @param int    $cId  The cast ID of the actor.
+     *
+     * @return string Local path.
+     */
+    public static function saveImageCast($sUrl, $cId)
+    {
+        if ( ! preg_match('~http~', $sUrl)) {
+            return 'cast/not-found.jpg';
+        }
+
+        $sFilename = dirname(__FILE__) . '/cast/' . $cId . '.jpg';
+        if (file_exists($sFilename)) {
+            return 'cast/' . $cId . '.jpg';
+        }
+
+        $aCurlInfo = self::runCurl($sUrl, true);
+        $sData     = $aCurlInfo['contents'];
+        if (false === $sData) {
+            return 'cast/not-found.jpg';
+        }
+
+        $oFile = fopen($sFilename, 'x');
+        fwrite($oFile, $sData);
+        fclose($oFile);
+
+        return 'cast/' . $cId . '.jpg';
     }
 }
