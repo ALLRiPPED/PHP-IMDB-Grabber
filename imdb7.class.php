@@ -8,7 +8,7 @@
  * @author  Fabian Beiner <fb@fabianbeiner.de>
  * @license https://opensource.org/licenses/MIT The MIT License
  * @link    https://github.com/FabianBeiner/PHP-IMDB-Grabber/ GitHub Repository
- * @version 6.1.2
+ * @version 6.1.3
  */
 class IMDB
 {
@@ -33,6 +33,7 @@ class IMDB
     const IMDB_AWARDS        = '~<div\s*class="titlereference-overview-section">\s*Awards:(.+)</div>~Uis';
     const IMDB_BUDGET        = '~<td[^>]*>Budget<\/td>\s*<td>\s*(.*)(?:\(estimated\))\s*<\/td>~Ui';
     const IMDB_CAST          = '~<td[^>]*itemprop="actor"[^>]*>\s*<a\s*href="/name/([^/]*)/\?[^"]*"[^>]*>\s*<span.+>(.+)</span~Ui';
+    const IMDB_CAST_IMAGE    = '~(loadlate="(.*)"[^>]*><\/a>\s+<\/td>\s+)?<td[^>]*itemprop="actor"[^>]*>\s*<a\s*href="\/name\/([^/]*)\/\?[^"]*"[^>]*>\s*<span.+>(.+)<\/span+~Uis';
     const IMDB_CERTIFICATION = '~<td[^>]*>\s*Certification\s*</td>\s*<td>(.+)</td>~Ui';
     const IMDB_CHAR          = '~<td class="character">(?:\s+)<div>(.*)(?:\s+)(?: /| \(.*\)|<\/div>)~Ui';
     const IMDB_COLOR         = '~<a href="\/search\/title\?colors=(?:.*)">(.*)<\/a>~Ui';
@@ -117,13 +118,13 @@ class IMDB
     {
         $this->sRoot = dirname(__FILE__);
         if ( ! is_writable($this->sRoot . '/posters') && ! mkdir($this->sRoot . '/posters')) {
-            throw new Exception('The directory “' . $this->sRoot . '/posters” isn’t writable.');
+            throw new Exception('The directory â€œ' . $this->sRoot . '/postersâ€ isnâ€™t writable.');
         }
         if ( ! is_writable($this->sRoot . '/cache') && ! mkdir($this->sRoot . '/cache')) {
-            throw new Exception('The directory “' . $this->sRoot . '/cache” isn’t writable.');
+            throw new Exception('The directory â€œ' . $this->sRoot . '/cacheâ€ isnâ€™t writable.');
         }
         if ( ! is_writable($this->sRoot . '/cast') && ! mkdir($this->sRoot . '/cast')) {
-            throw new Exception('The directory “' . $this->sRoot . '/cast” isn’t writable.');
+            throw new Exception('The directory â€œ' . $this->sRoot . '/castâ€ isnâ€™t writable.');
         }
         if ( ! function_exists('curl_init')) {
             throw new Exception('You need to enable the PHP cURL extension.');
@@ -262,7 +263,7 @@ class IMDB
     {
         $aData = [];
         foreach (get_class_methods(__CLASS__) as $method) {
-            if (substr($method, 0, 3) === 'get' && $method !== 'getAll') {
+            if (substr($method, 0, 3) === 'get' && $method !== 'getAll' && $method !== 'getCastImages') {
                 $aData[$method] = [
                     'name'  => ltrim($method, 'get'),
                     'value' => $this->{$method}()
@@ -273,7 +274,7 @@ class IMDB
         return $aData;
     }
     /**
-     * @return string “Also Known As” or $sNotFound.
+     * @return string â€œAlso Known Asâ€ or $sNotFound.
      */
     public function getAka()
     {
@@ -336,7 +337,7 @@ class IMDB
         return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound);
     }
     /**
-     * @return string “Aspect Ratio” or $sNotFound.
+     * @return string â€œAspect Ratioâ€ or $sNotFound.
      */
     public function getAspectRatio()
     {
@@ -363,7 +364,7 @@ class IMDB
     }
     /**
      * @param int    $iLimit  How many cast members should be returned?
-     * @param bool   $bMore   Add … if there are more cast members than printed.
+     * @param bool   $bMore   Add â€¦ if there are more cast members than printed.
      * @param string $sTarget Add a target to the links?
      *
      * @return string A list with linked cast members or $sNotFound.
@@ -399,7 +400,7 @@ class IMDB
     }
     /**
      * @param int  $iLimit How many cast members should be returned?
-     * @param bool $bMore  Add … if there are more cast members than printed.
+     * @param bool $bMore  Add â€¦ if there are more cast members than printed.
      *
      * @return string A list with cast members or $sNotFound.
      */
@@ -415,7 +416,7 @@ class IMDB
                     }
                     $aReturn[] = IMDBHelper::cleanString($sName);
                 }
-                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[2]) > $iLimit) ? '…' : '');
+                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[2]) > $iLimit) ? 'â€¦' : '');
                 $bHaveMore = ($bMore && (count($aMatch[2]) > $iLimit));
                 return IMDBHelper::arrayOutput($this->bArrayOutput,
                                                $this->sSeparator,
@@ -429,7 +430,7 @@ class IMDB
 
     /**
      * @param int    $iLimit    How many cast images should be returned?
-     * @param bool   $bMore     Add … if there are more cast members than printed.
+     * @param bool   $bMore     Add â€¦ if there are more cast members than printed.
      * @param string $sSize     small, mid or big cast images
      * @param bool   $bDownload Return URL or Download
      *
@@ -460,14 +461,28 @@ class IMDB
                         if (file_exists(dirname(__FILE__) . '/' . $sLocal)) {
                             $sMatch = $sLocal;
                         } else {
-                            $sMatch = IMDBHelper::cleanString($sMatch);
+                            //the 'big' image isn't available, try the 'mid' one (vice versa)
+                            if ('big' === strtolower($sSize) && false !== strstr($aMatch[2][$i], '@._')) {
+                                //trying the 'mid' one
+                                $sMatch = substr($aMatch[2][$i], 0, strpos($aMatch[2][$i], '@._')) . '@._V1_UX214_AL_.jpg';
+                            } else {
+                                //trying the 'big' one
+                                $sMatch = substr($aMatch[2][$i], 0, strpos($aMatch[2][$i], '@._')) . '@.jpg';
+                            }
+                            
+                            $sLocal = IMDBHelper::saveImageCast($sMatch, $aMatch[3][$i]);
+                            if (file_exists(dirname(__FILE__) . '/' . $sLocal)) {
+                                $sMatch = $sLocal;
+                            } else {
+                                $sMatch = IMDBHelper::cleanString($aMatch[2][$i]);
+                            }
                         }
                     }
 
                     $aReturn[IMDBHelper::cleanString($aMatch[4][$i])] = $sMatch;
                 }
 
-                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[4]) > $iLimit) ? '…' : '');
+                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[4]) > $iLimit) ? 'â€¦' : '');
 
                 $bHaveMore = ($bMore && (count($aMatch[4]) > $iLimit));
 
@@ -484,7 +499,7 @@ class IMDB
 
     /**
      * @param int    $iLimit  How many cast members should be returned?
-     * @param bool   $bMore   Add … if there are more cast members than
+     * @param bool   $bMore   Add â€¦ if there are more cast members than
      *                        printed.
      * @param string $sTarget Add a target to the links?
      *
@@ -524,7 +539,7 @@ class IMDB
     }
     /**
      * @param int  $iLimit How many cast members should be returned?
-     * @param bool $bMore  Add … if there are more cast members than printed.
+     * @param bool $bMore  Add â€¦ if there are more cast members than printed.
      *
      * @return string  A list with cast members and their character or
      *                 $sNotFound.
@@ -981,6 +996,68 @@ class IMDB
 
         return self::$sNotFound;
     }
+
+        /**
+     * Returns all local names
+     *
+     * @return string country
+     * @return string release date
+     */
+    public function getReleaseDates()
+    {
+        if (true === $this->isReady) {
+            // Does a cache of this movie exist?
+            $sCacheFile = $this->sRoot . '/cache/' . sha1($this->iId) . '_akas.cache';
+            $bUseCache  = false;
+
+            if (is_readable($sCacheFile)) {
+                $iDiff = round(abs(time() - filemtime($sCacheFile)) / 60);
+                if ($iDiff < $this->iCache || false) {
+                    $bUseCache = true;
+                }
+            }
+
+            if ($bUseCache) {
+                $aRawReturn = file_get_contents($sCacheFile);
+                $aReturn    = unserialize($aRawReturn);
+
+                return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound, $aReturn);
+            } else {
+                $fullAkas  = sprintf('https://www.imdb.com/title/tt%s/releaseinfo', $this->iId);
+                $aCurlInfo = IMDBHelper::runCurl($fullAkas);
+                $sSource   = $aCurlInfo['contents'];
+
+                if (false === $sSource) {
+                    if (true === self::IMDB_DEBUG) {
+                        echo '<pre><b>cURL error:</b> ' . var_dump($aCurlInfo) . '</pre>';
+                    }
+
+                    return false;
+                }
+                
+                $aReturned = IMDBHelper::matchRegex($sSource, '~>(.*)<\/a><\/td>\s+<td class="release_date">(.*)<\/td>~');
+
+                if ($aReturned) {
+                    $aReturn = [];
+                    foreach ($aReturned[1] as $i => $strName) {
+                        if (strpos($strName, '(') === false) {
+                            $aReturn[] = [
+                                'country' => IMDBHelper::cleanString($strName),
+                                'releasedate'   => IMDBHelper::cleanString($aReturned[2][$i])
+                            ];
+                        }
+                    }
+
+                    file_put_contents($sCacheFile, serialize($aReturn));
+
+                    return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound, $aReturn);
+                }
+            }
+        }
+
+        return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound);
+    }
+    
     /**
      * @return string The runtime of the movie or $sNotFound.
      */
@@ -1248,7 +1325,7 @@ class IMDBHelper extends IMDB
                 return [];
             }
             if ($bHaveMore) {
-                $aReturn[] = '…';
+                $aReturn[] = 'â€¦';
             }
             return $aReturn;
         } else {
@@ -1260,7 +1337,7 @@ class IMDBHelper extends IMDB
                     $aReturn[$i] = implode($sSeparator, $value);
                 }
             }
-            return implode($sSeparator, $aReturn) . (($bHaveMore) ? '…' : '');
+            return implode($sSeparator, $aReturn) . (($bHaveMore) ? 'â€¦' : '');
         }
     }
     /**
@@ -1313,7 +1390,7 @@ class IMDBHelper extends IMDB
         }
         list($sShort) = explode("\n", wordwrap($sText, $iLength - 1));
         if (substr($sShort, -1) !== '.') {
-            return $sShort . '…';
+            return $sShort . 'â€¦';
         }
         return $sShort;
     }
@@ -1378,7 +1455,7 @@ class IMDBHelper extends IMDB
         $aCurlInfo['contents'] = $sOutput;
         if (200 !== $aCurlInfo['http_code'] && 302 !== $aCurlInfo['http_code']) {
             if (true === self::IMDB_DEBUG) {
-                echo '<pre><b>cURL returned wrong HTTP code “' . $aCurlInfo['http_code'] . '”, aborting.</b></pre>';
+                echo '<pre><b>cURL returned wrong HTTP code â€œ' . $aCurlInfo['http_code'] . 'â€, aborting.</b></pre>';
             }
             return false;
         }
