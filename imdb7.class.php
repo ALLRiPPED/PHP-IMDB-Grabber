@@ -8,7 +8,7 @@
  * @author  Fabian Beiner <fb@fabianbeiner.de>
  * @license https://opensource.org/licenses/MIT The MIT License
  * @link    https://github.com/FabianBeiner/PHP-IMDB-Grabber/ GitHub Repository
- * @version 6.1.3
+ * @version 6.1.4
  */
 class IMDB
 {
@@ -42,6 +42,7 @@ class IMDB
     const IMDB_CREATOR       = '~<div[^>]*>\s*(?:Creator|Creators)\s*:\s*<ul[^>]*>(.+)</ul>~Uxsi';
     const IMDB_DIRECTOR      = '~<div[^>]*>\s*(?:Director|Directors)\s*:\s*<ul[^>]*>(.+)</ul>~Uxsi';
     const IMDB_GENRE         = '~href="/genre/([a-zA-Z_-]*)/?">([a-zA-Z_ -]*)</a>~Ui';
+    const IMDB_GROSS         = '~pl-zebra-list__label">Cumulative Worldwide Gross<\/td>\s+<td>\s+(.*)\s+<~Uxsi';
     const IMDB_ID            = '~((?:tt\d{6,})|(?:itle\?\d{6,}))~';
     const IMDB_LANGUAGE      = '~<a href="\/language\/(\w+)">(.*)<\/a>~Ui';
     const IMDB_LOCATION      = '~href="\/search\/title\?locations=(.*)">(.*)<\/a>~Ui';
@@ -118,13 +119,13 @@ class IMDB
     {
         $this->sRoot = dirname(__FILE__);
         if ( ! is_writable($this->sRoot . '/posters') && ! mkdir($this->sRoot . '/posters')) {
-            throw new Exception('The directory â€œ' . $this->sRoot . '/postersâ€ isnâ€™t writable.');
+            throw new Exception('The directory “' . $this->sRoot . '/posters” isn’t writable.');
         }
         if ( ! is_writable($this->sRoot . '/cache') && ! mkdir($this->sRoot . '/cache')) {
-            throw new Exception('The directory â€œ' . $this->sRoot . '/cacheâ€ isnâ€™t writable.');
+            throw new Exception('The directory “' . $this->sRoot . '/cache” isn’t writable.');
         }
         if ( ! is_writable($this->sRoot . '/cast') && ! mkdir($this->sRoot . '/cast')) {
-            throw new Exception('The directory â€œ' . $this->sRoot . '/castâ€ isnâ€™t writable.');
+            throw new Exception('The directory “' . $this->sRoot . '/cast” isn’t writable.');
         }
         if ( ! function_exists('curl_init')) {
             throw new Exception('You need to enable the PHP cURL extension.');
@@ -274,7 +275,7 @@ class IMDB
         return $aData;
     }
     /**
-     * @return string â€œAlso Known Asâ€ or $sNotFound.
+     * @return string “Also Known As” or $sNotFound.
      */
     public function getAka()
     {
@@ -337,7 +338,7 @@ class IMDB
         return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound);
     }
     /**
-     * @return string â€œAspect Ratioâ€ or $sNotFound.
+     * @return string “Aspect Ratio” or $sNotFound.
      */
     public function getAspectRatio()
     {
@@ -364,7 +365,7 @@ class IMDB
     }
     /**
      * @param int    $iLimit  How many cast members should be returned?
-     * @param bool   $bMore   Add â€¦ if there are more cast members than printed.
+     * @param bool   $bMore   Add … if there are more cast members than printed.
      * @param string $sTarget Add a target to the links?
      *
      * @return string A list with linked cast members or $sNotFound.
@@ -400,7 +401,7 @@ class IMDB
     }
     /**
      * @param int  $iLimit How many cast members should be returned?
-     * @param bool $bMore  Add â€¦ if there are more cast members than printed.
+     * @param bool $bMore  Add … if there are more cast members than printed.
      *
      * @return string A list with cast members or $sNotFound.
      */
@@ -416,7 +417,7 @@ class IMDB
                     }
                     $aReturn[] = IMDBHelper::cleanString($sName);
                 }
-                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[2]) > $iLimit) ? 'â€¦' : '');
+                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[2]) > $iLimit) ? '…' : '');
                 $bHaveMore = ($bMore && (count($aMatch[2]) > $iLimit));
                 return IMDBHelper::arrayOutput($this->bArrayOutput,
                                                $this->sSeparator,
@@ -430,7 +431,7 @@ class IMDB
 
     /**
      * @param int    $iLimit    How many cast images should be returned?
-     * @param bool   $bMore     Add â€¦ if there are more cast members than printed.
+     * @param bool   $bMore     Add … if there are more cast members than printed.
      * @param string $sSize     small, mid or big cast images
      * @param bool   $bDownload Return URL or Download
      *
@@ -464,7 +465,8 @@ class IMDB
                             //the 'big' image isn't available, try the 'mid' one (vice versa)
                             if ('big' === strtolower($sSize) && false !== strstr($aMatch[2][$i], '@._')) {
                                 //trying the 'mid' one
-                                $sMatch = substr($aMatch[2][$i], 0, strpos($aMatch[2][$i], '@._')) . '@._V1_UX214_AL_.jpg';
+                                $sMatch =
+                                    substr($aMatch[2][$i], 0, strpos($aMatch[2][$i], '@._')) . '@._V1_UX214_AL_.jpg';
                             } else {
                                 //trying the 'big' one
                                 $sMatch = substr($aMatch[2][$i], 0, strpos($aMatch[2][$i], '@._')) . '@.jpg';
@@ -482,7 +484,7 @@ class IMDB
                     $aReturn[IMDBHelper::cleanString($aMatch[4][$i])] = $sMatch;
                 }
 
-                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[4]) > $iLimit) ? 'â€¦' : '');
+                $bMore = (0 !== $iLimit && $bMore && (count($aMatch[4]) > $iLimit) ? '…' : '');
 
                 $bHaveMore = ($bMore && (count($aMatch[4]) > $iLimit));
 
@@ -499,7 +501,7 @@ class IMDB
 
     /**
      * @param int    $iLimit  How many cast members should be returned?
-     * @param bool   $bMore   Add â€¦ if there are more cast members than
+     * @param bool   $bMore   Add … if there are more cast members than
      *                        printed.
      * @param string $sTarget Add a target to the links?
      *
@@ -539,7 +541,7 @@ class IMDB
     }
     /**
      * @param int  $iLimit How many cast members should be returned?
-     * @param bool $bMore  Add â€¦ if there are more cast members than printed.
+     * @param bool $bMore  Add … if there are more cast members than printed.
      *
      * @return string  A list with cast members and their character or
      *                 $sNotFound.
@@ -801,6 +803,19 @@ class IMDB
         return IMDBHelper::arrayOutput($this->bArrayOutput, $this->sSeparator, self::$sNotFound);
     }
     /**
+     * @return string cumulative worldwide gross or $sNotFound.
+     */
+    public function getGross()
+    {
+        if (true === $this->isReady) {
+            $sMatch = IMDBHelper::matchRegex($this->sSource, self::IMDB_GROSS, 1);
+            if (false !== $sMatch) {
+                return IMDBHelper::cleanString($sMatch);
+            }
+        }
+        return self::$sNotFound;
+    }
+    /**
      * @return string A list with the languages or $sNotFound.
      */
     public function getLanguage()
@@ -1034,9 +1049,8 @@ class IMDB
 
                     return false;
                 }
-                
-                $aReturned = IMDBHelper::matchRegex($sSource, '~>(.*)<\/a><\/td>\s+<td class="release_date">(.*)<\/td>~');
-
+                $aReturned =
+                    IMDBHelper::matchRegex($sSource, '~>(.*)<\/a><\/td>\s+<td class="release_date">(.*)<\/td>~');
                 if ($aReturned) {
                     $aReturn = [];
                     foreach ($aReturned[1] as $i => $strName) {
@@ -1325,7 +1339,7 @@ class IMDBHelper extends IMDB
                 return [];
             }
             if ($bHaveMore) {
-                $aReturn[] = 'â€¦';
+                $aReturn[] = '…';
             }
             return $aReturn;
         } else {
@@ -1337,7 +1351,7 @@ class IMDBHelper extends IMDB
                     $aReturn[$i] = implode($sSeparator, $value);
                 }
             }
-            return implode($sSeparator, $aReturn) . (($bHaveMore) ? 'â€¦' : '');
+              return implode($sSeparator, $aReturn) . (($bHaveMore) ? '…' : '');
         }
     }
     /**
@@ -1390,7 +1404,7 @@ class IMDBHelper extends IMDB
         }
         list($sShort) = explode("\n", wordwrap($sText, $iLength - 1));
         if (substr($sShort, -1) !== '.') {
-            return $sShort . 'â€¦';
+            return $sShort . '…';
         }
         return $sShort;
     }
@@ -1455,7 +1469,7 @@ class IMDBHelper extends IMDB
         $aCurlInfo['contents'] = $sOutput;
         if (200 !== $aCurlInfo['http_code'] && 302 !== $aCurlInfo['http_code']) {
             if (true === self::IMDB_DEBUG) {
-                echo '<pre><b>cURL returned wrong HTTP code â€œ' . $aCurlInfo['http_code'] . 'â€, aborting.</b></pre>';
+                echo '<pre><b>cURL returned wrong HTTP code “' . $aCurlInfo['http_code'] . '”, aborting.</b></pre>';
             }
             return false;
         }
