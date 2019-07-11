@@ -64,6 +64,7 @@ class IMDB
     const IMDB_TITLE         = '~itemprop="name">(.*)(<\/h3>|<span)~Ui';
     const IMDB_TITLE_ORIG    = '~</h3>(?:\s+)(.*)(?:\s+)<span class=\"titlereference-original-title-label~Ui';
     const IMDB_TRAILER       = '~href="videoplayer/(vi[0-9]*)"~Ui';
+    const IMDB_RATING_COUNT  = '~class="ipl-rating-star__total-votes">\((.*)\)<~Ui';
     const IMDB_URL           = '~https?://(?:.*\.|.*)imdb.com/(?:t|T)itle(?:\?|/)(..\d+)~i';
     const IMDB_USER_REVIEW   = '~href="/title/[t0-9]*/reviews"[^>]*>([^<]*)\s*User~Ui';
     const IMDB_VOTES         = '~"ipl-rating-star__total-votes">\s*\((.*)\)\s*<~Ui';
@@ -1161,6 +1162,19 @@ class IMDB
             $sMatch = $this->getSeasonsAsUrl();
             if (self::$sNotFound !== $sMatch) {
                 return IMDBHelper::cleanString($sMatch);
+            }
+        }
+        return self::$sNotFound;
+    }
+	/**
+     * @return string The rating count of the movie or $sNotFound.
+     */
+    public function getRatingCount()
+    {
+        if (true === $this->isReady) {
+            $sMatch = IMDBHelper::matchRegex($this->sSource, self::IMDB_RATING_COUNT, 1);
+            if (false !== $sMatch) {
+                return str_replace(',','',IMDBHelper::cleanString($sMatch));
             }
         }
         return self::$sNotFound;
